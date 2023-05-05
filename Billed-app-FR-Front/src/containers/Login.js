@@ -1,3 +1,4 @@
+
 import { ROUTES_PATH } from '../constants/routes.js'
 export let PREVIOUS_LOCATION = ''
 
@@ -36,14 +37,12 @@ export default class Login {
 
   }
 
-  /*  Bug Fix: Connection issue for administrators resolved by using correct data selectors **
-  **  for admin email and password in the handleSubmitAdmin function                        */
+  /* Bug Fix: Connection issue for administrators resolved by using correct data selectors **
+  ** for admin email and password in the handleSubmitAdmin function LINE 46-47             */
   handleSubmitAdmin = e => {
     e.preventDefault()
     const user = {
       type: "Admin",
-      //email: e.target.querySelector(`input[data-testid="employee-email-input"]`).value,
-      //password: e.target.querySelector(`input[data-testid="employee-password-input"]`).value,
       email: e.target.querySelector(`input[data-testid="admin-email-input"]`).value,
       password: e.target.querySelector(`input[data-testid="admin-password-input"]`).value,
       status: "connected"

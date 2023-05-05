@@ -130,11 +130,6 @@ export default class {
     this.onNavigate(ROUTES_PATH['Dashboard'])
   }
 
-   /*  Bug Fix: Ensure proper display and toggling of ticket cards when interacting with  **
-   **  status container. Bug fix includes maintaining correct state for counter           **
-   **  and index variables, which are used to control display and rotation of arrow       **
-   **  icon and ticket cards. This resolves bug where ticket cards were not displayed     **
-   **  or toggled correctly when interacting with status container.                       */
   handleShowTickets(e, bills, index) {
     if (this.counter === undefined || this.index !== index) this.counter = 0
     if (this.index === undefined || this.index !== index) this.index = index
@@ -150,13 +145,24 @@ export default class {
       this.counter ++
     }
 
-    bills.forEach(bill => {
+    /*bills.forEach(bill => {
       $(`#open-bill${bill.id}`).click((e) => this.handleEditTicket(e, bill, bills))
     })
 
     return bills
 
-  }
+  }*/
+
+  bills.forEach((bill) => {
+    $(`#open-bill${bill.id}`).click((e) => {
+      if (e.target.closest(`#status-bills-container${index}`)) {
+        this.handleEditTicket(e, bill, bills);
+      }
+    });
+  });
+
+  return bills;
+}
 
   getBillsAllUsers = () => {
     if (this.store) {

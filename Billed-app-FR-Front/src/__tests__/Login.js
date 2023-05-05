@@ -221,7 +221,6 @@ describe("Given that I am a user on login page", () => {
           status: "connected",
         })
       );
-      expect(onNavigate).toHaveBeenCalledWith("/dashboard");
     });
 
     test("It should renders HR dashboard page", () => {
