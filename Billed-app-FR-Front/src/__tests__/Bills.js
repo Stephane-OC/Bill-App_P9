@@ -5,6 +5,12 @@
 import "@testing-library/jest-dom";
 import { screen, waitFor, fireEvent } from "@testing-library/dom";
 import userEvent from "@testing-library/user-event";
+jest.mock("../app/format.js", () => ({
+  formatDate: jest.fn(),
+  formatStatus: jest.fn((status) =>
+    status === "pending" ? "En attente" : status
+  ),
+}));
 import BillsUI from "../views/BillsUI.js";
 import Bills from "../containers/Bills";
 import { ROUTES, ROUTES_PATH } from "../constants/routes.js";
@@ -64,6 +70,8 @@ describe("Given I want connected as an employee", () => {
     });
   });
 });
+
+
 
 /********************************************************
 ************** The table should be empty ****************
@@ -125,16 +133,17 @@ describe("Given I am connected as an employee", () => {
     });
   });
 });
+//Faire la meme avec un truc erroné dans Data que ça me retourne bien l'erreur
 
 /********************************************************
 ********* Vertical layout should be highlighted *********
 ********************************************************/
 
 /* This test case is designed to confirm that when an employee navigates to Bills page,                **
-** associated icon in the vertical layout should be visually highlighted (having class "active-icon"). **
-** The setup involves creating a mock localStorage, setting the user as an employee,                   **
-** creating a root div element for the router, and navigating to Bills page.                           **
-** Once page is loaded, test checks if "icon-window" has the "active-icon" class.                      */
+ ** associated icon in the vertical layout should be visually highlighted (having class "active-icon"). **
+ ** The setup involves creating a mock localStorage, setting the user as an employee,                   **
+ ** creating a root div element for the router, and navigating to Bills page.                           **
+ ** Once page is loaded, test checks if "icon-window" has the "active-icon" class.                      */
 
 describe("Given I am connected as an employee", () => {
   describe("When I am on Bills Page", () => {
@@ -160,11 +169,11 @@ describe("Given I am connected as an employee", () => {
     });
 
     /* This test case checks whether bills on Bills page are sorted by date in descending order **
-    ** (earliest to latest). After rendering BillsUI with given bills data,                     **
-    ** it retrieves all the dates from page (expecting them to be in a specific date format).   **
-    ** Test case then sorts these dates in descending order and asserts that this sorted list   ** 
-    ** matches the original list of dates from the page.                                        **
-    ** This would confirm that the original list was indeed sorted in descending order.         */
+     ** (earliest to latest). After rendering BillsUI with given bills data,                     **
+     ** it retrieves all the dates from page (expecting them to be in a specific date format).   **
+     ** Test case then sorts these dates in descending order and asserts that this sorted list   **
+     ** matches the original list of dates from the page.                                        **
+     ** This would confirm that the original list was indeed sorted in descending order.         */
 
     test("Then bills should be sorted from earliest to latest", () => {
       document.body.innerHTML = BillsUI({ data: bills });
@@ -237,7 +246,7 @@ describe("Given I am connected as an employee", () => {
     /********************************************************
     ********* Should be redirected to new bill page *********
     ********************************************************/
-   
+
     /* This test case ensures that when a user (Employee) clicks on the "New Bill" button,                        **
     ** the user should be redirected to the new bill page.                                                        **
 
@@ -290,6 +299,7 @@ describe("Given I am connected as an employee", () => {
     });
   });
 });
+
 
 // Integration Test: GET operation
 
@@ -410,8 +420,8 @@ describe("Given I am connected as an employee", () => {
     ** Finally, it asserts that error message does indeed exist in the DOM.                            **
 
     ** This test ensures that application handles server errors correctly by displaying an appropriate **
-    ** error message.                                                                          */
-   
+    ** error message.                                                                                  */
+
     describe("When the API returns a 500 error while fetching bills", () => {
       test("Then a 500 error message should be displayed", async () => {
         mockStore.bills.mockImplementationOnce(() => {
@@ -427,5 +437,102 @@ describe("Given I am connected as an employee", () => {
         expect(message).toBeTruthy();
       });
     });
+  });
+});
+
+/*******************************************************************
+********** Handling of Bills with Corrupted Date Field *************
+*******************************************************************/
+
+/* This test case checks application's ability to handle bills with corrupted date fields.          **
+
+** The goal is to ensure that when a bill with a corrupted date field is encountered, application   **
+** does not crash or behave unexpectedly, but instead retains the unformatted date. This allows for **
+** potential later rectification of data error.                                                     **
+
+** Test begins by mocking `formatDate` method from 'app/format.js' module to throw an               **
+** 'Error' whenever it is called. This simulates scenario where a date field in a bill cannot be    **
+** formatted correctly due to corruption.                                                           **
+**
+** Next, mock store is created with 'bills' method that returns bill with corrupted date field.     **
+** An instance of 'Bills' class is then created, passing in mock store among other arguments.       **  
+
+** 'getBills' method of 'Bills' class is called, which is expected to handle corrupted date         **
+** and return list of bills with unformatted date.                                                  **
+
+** Teturned list of bills is then checked to ensure that it contains bill with corrupted date.      **
+
+** Finally, mock implementation of 'formatDate' is reset to its default behavior to prevent mock    **
+** from affecting other tests.                                                                      */
+
+describe("Given I have a bill with a corrupted date", () => {
+  test("Then it should handle the error and return the bill with unformatted date", async () => {
+    const { formatDate } = require("../app/format.js");
+    formatDate.mockImplementation(() => {
+      throw new Error("Corrupted date");
+    });
+
+    const mockStore = {
+      bills: jest.fn().mockReturnValue({
+        list: jest.fn().mockResolvedValue([
+          {
+            id: "1",
+            date: "Not a date", // Corrupted date
+            status: "pending",
+          },
+        ]),
+      }),
+    };
+    const bills = new Bills({
+      document,
+      onNavigate,
+      store: mockStore,
+      localStorage,
+    });
+
+    const billsList = await bills.getBills();
+
+    expect(billsList).toEqual([
+      {
+        id: "1",
+        date: "Not a date", // Should keep the corrupted date
+        status: "En attente",
+      },
+    ]);
+
+    // At the end of test, reset the mock implementation to its default behavior
+    formatDate.mockImplementation(() => {});
+  });
+});
+
+/*******************************************************************
+*************** Handling of Bills with No Store ********************
+*******************************************************************/
+
+/* This test case checks application's behavior when no store is provided to 'Bills' class.       **
+
+** Aim is to ensure that when a 'Bills' instance is created without store, 'getBills' method      **
+** does not crash or behave unexpectedly but instead returns 'undefined'.                         **
+
+** This situation could occur due to programming error or an issue with store instantiation, and  **
+** it's important for application to handle such scenarios gracefully.                            **
+
+** Test begins by creating an instance of 'Bills' class without passing in a store (store: null). **
+
+** 'getBills' method of 'Bills' class is then called, and its return value is expected to be      **
+** 'undefined'.                                                                                   **
+
+** This test ensures that application can handle scenarios where store is not available, and      **
+** prevents unexpected behaviors or crashes in such cases.                                        */
+
+describe("Given no store", () => {
+  test("Then getBills should return undefined", async () => {
+    const bills = new Bills({
+      document,
+      onNavigate,
+      localStorage,
+      store: null,
+    });
+    expect(await bills.getBills()).toBeUndefined();
   });
 });

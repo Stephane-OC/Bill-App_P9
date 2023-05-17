@@ -53,7 +53,7 @@ export default class NewBill {
           this.fileUrl = fileUrl;
           this.fileName = fileName;
         })
-        .catch((error) => console.error(error));
+        //.catch((error) => console.error(error));
     } else {
       champFile.setCustomValidity("Merci d'utiliser le bon format JPG, JPEG ou PNG");
     }
@@ -88,7 +88,7 @@ export default class NewBill {
       .then(() => {
         this.onNavigate(ROUTES_PATH['Bills'])
       })
-      .catch(error => console.error(error))
+      //.catch(error => console.error(error))
     }
   }
 }
